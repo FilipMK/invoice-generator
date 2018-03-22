@@ -7,35 +7,73 @@ function showAnchor(name,url) {
 
 var CLIENT_ID = 'Q0g84atnoxBasF6VPkSC8ljo7bZMtW0BlmLeobrxnotQ3b8C1s';
 var CLIENT_SECRET = '3FUh6zTPWdvgmO9053R4LlRsB3qAL0Azk6F04xOB';
+var URL = 'https://sandbox-quickbooks.api.intuit.com/v3/company/193514731405939/invoice?minorversion=4'
+
+//these data will be eventually fetched from spreadsheet:
+var productService = 'Developer';
+var description = '';
+var amount = 280.00;
+var unitPrice = 70;
+var quantity = 4;
+
+var invoiceDate = '2018-02-28';
+var dueDate = '2018-03-31'
+
+var line1 = '245 Fifth Avenue,\n7th Floor';
+var city = 'New York';
+var countrySubDivisionCode = 'NY';
+var postalCode = '10016';
+
+var message = 'Please remit payment via electronic ACH transfer:';
 
 /**
  * Authorizes and makes a request to the Medium API.
  */
 function pushInvoice() {
   var service = getService_();
-  if (service.hasAccess()) {
-    var url = 'https://sandbox-quickbooks.api.intuit.com/v3/company/193514731405939/invoice?minorversion=4'
-    
+  if (service.hasAccess()) {    
     var data = {
-      'Line': [{
-        'Amount': 999.00,
-        'DetailType': 'SalesItemLineDetail',
-        'SalesItemLineDetail': {
-          'ItemRef': {
-            'value': '1',
-            'name': 'Services'
+      'TxnDate': invoiceDate,
+      'DueDate': dueDate,
+      'Line': [
+        {
+          'Amount': amount,
+          'DetailType': 'SalesItemLineDetail',
+          'Description': 'NG-100 Marek Krzynowek: Feb 2018',
+          'SalesItemLineDetail': {
+            'ItemRef': {
+              'value': '1',
+              'name': productService
+            },
+            'UnitPrice': unitPrice,
+            'Qty': quantity
           }
         }
-      }
-               ],
+      ],
       'CustomerRef': {
         'value': '1'
-      }
+      },
+      'BillAddr': {
+        'Id': '13',     //set the correct number
+        'Line1': line1,
+        'City': city,
+        'CountrySubDivisionCode': countrySubDivisionCode,
+        'PostalCode': postalCode,
+        'Lat': 'INVALID',
+        'Long': 'INVALID'
+      },
+      'SalesTermRef': {
+        'value': '1'
+      },
+      'CustomerMemo': {
+        'value': message
+       }
+      
     };
         
     
     
-    var response = UrlFetchApp.fetch(url, {
+    var response = UrlFetchApp.fetch(URL, {
       headers: {
         Authorization: 'Bearer ' + service.getAccessToken(),
         Accept: 'application/json'
