@@ -1,10 +1,3 @@
-function showAnchor(name,url) {
-  var html = '<html><body><a href="'+url+'" target="blank" onclick="google.script.host.close()">'+name+'</a></body></html>';
-  var ui = HtmlService.createHtmlOutput(html)
-  SpreadsheetApp.getUi().showModelessDialog(ui,"You need to authorize to QuickBooks");
-}
-
-
 var CLIENT_ID = 'Q0g84atnoxBasF6VPkSC8ljo7bZMtW0BlmLeobrxnotQ3b8C1s';
 var CLIENT_SECRET = '3FUh6zTPWdvgmO9053R4LlRsB3qAL0Azk6F04xOB';
 var URL = 'https://sandbox-quickbooks.api.intuit.com/v3/company/193514731405939/invoice?minorversion=4'
@@ -12,9 +5,9 @@ var URL = 'https://sandbox-quickbooks.api.intuit.com/v3/company/193514731405939/
 //these data will be eventually fetched from spreadsheet:
 var productService = 'Developer';
 var description = '';
-var amount = 280.00;
+var amount = 490.00;
 var unitPrice = 70;
-var quantity = 4;
+var quantity = 7;
 
 var invoiceDate = '2018-02-28';
 var dueDate = '2018-03-31'
@@ -29,10 +22,33 @@ var message = 'Please remit payment via electronic ACH transfer:';
 /**
  * Authorizes and makes a request to the Medium API.
  */
-function pushInvoice() {
+function authorizeAndPushInvoice() {
   var service = getService_();
-  if (service.hasAccess()) {    
-    var data = {
+  if (service.hasAccess()) {
+    pushInvoice(service);
+  } else {
+    var authorizationUrl = service.getAuthorizationUrl();
+    showAnchor('Authorize',authorizationUrl);
+  }
+}
+
+function pushInvoice(service) {
+  var response = UrlFetchApp.fetch(URL, {
+    headers: {
+      Authorization: 'Bearer ' + service.getAccessToken(),
+      Accept: 'application/json'
+    },
+    method: 'post',
+    muteHttpExceptions : true,
+    contentType: 'application/json',
+    payload : JSON.stringify(getInvoiceData())
+  });
+  var result = JSON.parse(response.getContentText());
+  Logger.log(JSON.stringify(result, null, 2));
+}
+
+function getInvoiceData() {
+  return {
       'TxnDate': invoiceDate,
       'DueDate': dueDate,
       'Line': [
@@ -55,12 +71,17 @@ function pushInvoice() {
       },
       'BillAddr': {
         'Id': '13',     //set the correct number
-        'Line1': line1,
+        'Line1': 'Ala Makota',
+        'Line2': 'Google Inc.',
+        'Line3': line1,
         'City': city,
         'CountrySubDivisionCode': countrySubDivisionCode,
         'PostalCode': postalCode,
         'Lat': 'INVALID',
         'Long': 'INVALID'
+      },
+      'BillEmail': {
+        'Address': 'Familiystore@intuit.com'
       },
       'SalesTermRef': {
         'value': '1'
@@ -68,32 +89,13 @@ function pushInvoice() {
       'CustomerMemo': {
         'value': message
        }
-      
     };
-        
-    
-    
-    var response = UrlFetchApp.fetch(URL, {
-      headers: {
-        Authorization: 'Bearer ' + service.getAccessToken(),
-        Accept: 'application/json'
-        
-      },
-      method: 'post',
-      muteHttpExceptions : true,
-      //RequestBody: JSON.stringify(data),
-      contentType: 'application/json',
-      payload : JSON.stringify(data)
-      
-    });
-    //Logger.log(response);
-    var result = JSON.parse(response.getContentText());
-    //Logger.log(result);
-    Logger.log(JSON.stringify(result, null, 2));
-  } else {
-    var authorizationUrl = service.getAuthorizationUrl();
-    showAnchor('Authorize',authorizationUrl);
-  }
+}
+
+function showAnchor(name,url) {
+  var html = '<html><body><a href="'+url+'" target="blank" onclick="google.script.host.close()">'+name+'</a></body></html>';
+  var ui = HtmlService.createHtmlOutput(html)
+  SpreadsheetApp.getUi().showModelessDialog(ui,"You need to authorize to QuickBooks");
 }
 
 /**
@@ -103,12 +105,6 @@ function reset() {
   var service = getService_();
   service.reset();
 }
-
-function getToken() {
-  var service = getService_();
-  Logger.log(service.getAccessToken());
-}
-
 
 /**
  * Configures the service.
